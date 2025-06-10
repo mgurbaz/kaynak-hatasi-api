@@ -27,5 +27,8 @@ def detect():
 
     # Roboflow modelini kullanarak tahmin yap
     prediction = model.predict("input.jpg", confidence=40, overlap=30).json()
+    if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
+
 
     return jsonify(prediction)
