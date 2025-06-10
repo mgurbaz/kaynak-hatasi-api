@@ -23,12 +23,14 @@ def detect():
     npimg = np.frombuffer(image, np.uint8)
     img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
+    # Görseli geçici olarak kaydet
     cv2.imwrite("input.jpg", img)
 
     # Roboflow modelini kullanarak tahmin yap
     prediction = model.predict("input.jpg", confidence=40, overlap=30).json()
-    if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
-
 
     return jsonify(prediction)
+
+# Uygulama sunucusunu başlat
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
