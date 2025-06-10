@@ -16,7 +16,7 @@ HTML = """
 <title>Kaynak Hatası Test</title>
 <h2>Kaynak Hatası Görseli Yükle</h2>
 <form method=post enctype=multipart/form-data>
-  <input type=file name=image>
+  <input type=file name=image required>
   <input type=submit value=Yükle>
 </form>
 {% if prediction %}
@@ -29,13 +29,19 @@ HTML = """
 def home():
     prediction = None
     if request.method == 'POST':
-        file = request.files['image']
+        file = request.files.get('image')
+        if not file:
+            return "Dosya bulunamadı", 400
         image = file.read()
         npimg = np.frombuffer(image, np.uint8)
         img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
-        cv2.imwrite("input.jpg", img)
-        prediction = model.predict("input.jpg", confidence=40, overlap=30).json()
+
+        img_path = "/tmp/input.jpg"
+        cv2.imwrite(img_path, img)
+
+        prediction = model.predict(img_path, confidence=40, overlap=30).json()
     return render_template_string(HTML, prediction=prediction)
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
