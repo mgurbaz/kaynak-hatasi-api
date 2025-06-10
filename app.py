@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, render_template_string, jsonify
 from roboflow import Roboflow
 import cv2
 import numpy as np
@@ -6,31 +6,36 @@ import os
 
 app = Flask(__name__)
 
-# Roboflow modelini initialize et
 rf = Roboflow(api_key=os.environ.get("ROBOFLOW_API_KEY", ""))
 project = rf.workspace("taha-antzq").project("kaynak-hatalari")
 version = project.version(1)
 model = version.model
 
-@app.route('/')
+HTML = """
+<!doctype html>
+<title>Kaynak Hatası Test</title>
+<h2>Kaynak Hatası Görseli Yükle</h2>
+<form method=post enctype=multipart/form-data>
+  <input type=file name=image>
+  <input type=submit value=Yükle>
+</form>
+{% if prediction %}
+<h3>Sonuçlar:</h3>
+<pre>{{ prediction }}</pre>
+{% endif %}
+"""
+
+@app.route('/', methods=['GET', 'POST'])
 def home():
-    return "Kaynak Hatası Tespit API'si Çalışıyor"
+    prediction = None
+    if request.method == 'POST':
+        file = request.files['image']
+        image = file.read()
+        npimg = np.frombuffer(image, np.uint8)
+        img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+        cv2.imwrite("input.jpg", img)
+        prediction = model.predict("input.jpg", confidence=40, overlap=30).json()
+    return render_template_string(HTML, prediction=prediction)
 
-@app.route('/detect', methods=['POST'])
-def detect():
-    file = request.files['image']
-    image = file.read()
-    npimg = np.frombuffer(image, np.uint8)
-    img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
-
-    # Görseli geçici olarak kaydet
-    cv2.imwrite("input.jpg", img)
-
-    # Roboflow modelini kullanarak tahmin yap
-    prediction = model.predict("input.jpg", confidence=40, overlap=30).json()
-
-    return jsonify(prediction)
-
-# Uygulama sunucusunu başlat
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
